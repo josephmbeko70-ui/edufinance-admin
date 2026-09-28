@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function adminDoc() {
+      return signedIn()
+        ? get(/databases/$(database)/documents/admins/$(request.auth.uid))
+        : null;
+    }
+
+    function isSuperAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.admin == true
+          || (
+            exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+            && adminDoc().data.role == 'super_admin'
+            && adminDoc().data.active == true
+          )
+        );
+    }
+
+    function isSchoolAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && adminDoc().data.role == 'school_admin'
+        && adminDoc().data.active == true;
+    }
+
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid || isSuperAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    match /schools/{schoolId} {
+      allow read: if isSuperAdmin() || (
+        isSchoolAdmin()
+        && adminDoc().data.schoolId == schoolId
+      );
+      allow write: if isSuperAdmin();
+    }
+
+    match /schools/{schoolId}/{subcollection}/{docId} {
+      allow read: if isSuperAdmin() || (
+        isSchoolAdmin()
+        && adminDoc().data.schoolId == schoolId
+      );
+      allow write: if isSuperAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
