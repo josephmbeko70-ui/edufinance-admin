@@ -1,9 +1,9 @@
-import { initializeApp, getApps } from 'firebase/app'
+import { initializeApp } from 'firebase/app'
 import { initializeAuth, browserLocalPersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCm65UkBJowhIbOgQia0vGGjRlcFun5Rys',
+  apiKey: 'AIzaSyCm65UkbJowhIbOgQia0vGGjRlcFun5Rys',
   authDomain: 'edufinance-e0fd5.firebaseapp.com',
   projectId: 'edufinance-e0fd5',
   storageBucket: 'edufinance-e0fd5.firebasestorage.app',
@@ -12,12 +12,11 @@ const firebaseConfig = {
   measurementId: 'G-P28KPH83Y6',
 }
 
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
+const app = initializeApp(firebaseConfig)
 
-// Même persistance locale que l’espace Pro. Les deux applications
-// partagent le même hôte GitHub Pages.
 export const auth = initializeAuth(app, {
   persistence: browserLocalPersistence,
 })
+
 export const db = getFirestore(app)
 export default app
