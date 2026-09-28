@@ -45,6 +45,7 @@ function App() {
       if (!next) {
         setAdmin(null)
         setBooting(false)
+        window.location.replace(CLIENT_APP_URL)
         return
       }
 
@@ -58,7 +59,6 @@ function App() {
           setAdmin(null)
           setBooting(false)
 
-          // Évite une boucle Pro → Admin → Pro → Admin.
           await signOut(auth)
           window.location.replace(CLIENT_APP_URL)
           return
@@ -75,8 +75,6 @@ function App() {
         setAdmin(null)
         setBooting(false)
 
-        // En cas d'erreur d'autorisation, on termine la session
-        // avant de revenir sur le site Pro.
         try {
           await signOut(auth)
         } catch (signOutError) {
@@ -100,10 +98,7 @@ function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <aside className={`fixed inset-y-0 left-0 z-40 w-72 transform border-r border-slate-200 bg-slate-950 text-white transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
-          <div>
-            <p className="text-lg font-semibold tracking-tight">EduFinance</p>
-            <p className="text-xs text-slate-400">Administration</p>
-          </div>
+          <div><p className="text-lg font-semibold tracking-tight">EduFinance</p><p className="text-xs text-slate-400">Administration</p></div>
           <button className="lg:hidden" onClick={() => setOpen(false)}><X size={20}/></button>
         </div>
         <nav className="space-y-1 p-4">
@@ -117,10 +112,7 @@ function App() {
         <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><UserRound size={17}/></div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{admin.displayName || user.email}</p>
-              <p className="text-xs capitalize text-slate-400">{admin.role.replace('_', ' ')}</p>
-            </div>
+            <div className="min-w-0"><p className="truncate text-sm font-medium">{admin.displayName || user.email}</p><p className="text-xs capitalize text-slate-400">{admin.role.replace('_', ' ')}</p></div>
           </div>
           <button onClick={() => signOut(auth)} className="mt-3 flex items-center gap-2 text-xs text-slate-300 hover:text-white"><LogOut size={14}/> Déconnexion</button>
         </div>
@@ -131,10 +123,7 @@ function App() {
           <div className="flex h-20 items-center justify-between px-4 md:px-8">
             <div className="flex items-center gap-3">
               <button className="lg:hidden" onClick={() => setOpen(true)}><Menu size={22}/></button>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Console centrale</p>
-                <h1 className="text-xl font-semibold capitalize">{nav.find(x => x.id === page)?.label}</h1>
-              </div>
+              <div><p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Console centrale</p><h1 className="text-xl font-semibold capitalize">{nav.find(x => x.id === page)?.label}</h1></div>
             </div>
             <button className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white"><Bell size={18}/><span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500"/></button>
           </div>
@@ -154,7 +143,6 @@ function App() {
     </div>
   )
 }
-
 
 function Dashboard() {
   const [schools, setSchools] = useState(0)
@@ -190,10 +178,7 @@ function Dashboard() {
   ], [schools, students, admins, activeSubs])
 
   return <div className="space-y-8">
-    <div>
-      <p className="text-sm text-slate-500">Synthèse opérationnelle</p>
-      <h2 className="mt-1 text-2xl font-semibold tracking-tight">Vue d’ensemble</h2>
-    </div>
+    <div><p className="text-sm text-slate-500">Synthèse opérationnelle</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">Vue d’ensemble</h2></div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map(s => { const Icon=s.icon; return <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
         <div className="flex items-center justify-between"><div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100"><Icon size={19}/></div><TrendingUp size={17} className="text-emerald-500"/></div>
@@ -201,14 +186,8 @@ function Dashboard() {
       </div>})}
     </div>
     <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-      <Panel title="Évolution des inscriptions" subtitle="Structure prête à recevoir les agrégations Firestore.">
-        <div className="grid h-72 place-items-center rounded-xl bg-slate-50 text-sm text-slate-400">Aucune série historique exploitable pour le moment.</div>
-      </Panel>
-      <Panel title="Répartition des abonnements" subtitle="Plans et effectifs.">
-        <div className="space-y-3">
-          {['Classique · $1 / élève','Professionnel · $1.50 / élève','Établissement · $2 / élève'].map((x,i)=><div key={x} className="flex items-center justify-between rounded-xl border border-slate-100 p-4"><span className="text-sm">{x}</span><span className="text-xs text-slate-400">À alimenter</span></div>)}
-        </div>
-      </Panel>
+      <Panel title="Évolution des inscriptions" subtitle="Structure prête à recevoir les agrégations Firestore."><div className="grid h-72 place-items-center rounded-xl bg-slate-50 text-sm text-slate-400">Aucune série historique exploitable pour le moment.</div></Panel>
+      <Panel title="Répartition des abonnements" subtitle="Plans et effectifs."><div className="space-y-3">{['Classique · $1 / élève','Professionnel · $1.50 / élève','Établissement · $2 / élève'].map(x=><div key={x} className="flex items-center justify-between rounded-xl border border-slate-100 p-4"><span className="text-sm">{x}</span><span className="text-xs text-slate-400">À alimenter</span></div>)}</div></Panel>
     </div>
     <div className="grid gap-6 xl:grid-cols-2">
       <Panel title="Paiements récents" subtitle="Les transactions apparaîtront dès que leur collection sera renseignée."><Empty icon={CreditCard} text="Aucun paiement récent disponible." /></Panel>
@@ -219,26 +198,15 @@ function Dashboard() {
 
 function EntityPage({ title, subtitle }: { title: string; subtitle: string }) {
   return <div className="space-y-6">
-    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-sm text-slate-500">{subtitle}</p><h2 className="mt-1 text-2xl font-semibold">{title}</h2></div>
-      <div className="relative w-full md:w-72"><Search size={17} className="absolute left-3 top-3.5 text-slate-400"/><input placeholder="Rechercher…" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4"/></div>
-    </div>
-    <Panel title={title} subtitle="Les données réelles seront branchées sur les collections existantes, sans modification arbitraire de leur schéma.">
-      <div className="grid min-h-72 place-items-center"><Empty icon={Users} text="Aucune donnée disponible actuellement." /></div>
-    </Panel>
+    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><p className="text-sm text-slate-500">{subtitle}</p><h2 className="mt-1 text-2xl font-semibold">{title}</h2></div><div className="relative w-full md:w-72"><Search size={17} className="absolute left-3 top-3.5 text-slate-400"/><input placeholder="Rechercher…" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4"/></div></div>
+    <Panel title={title} subtitle="Les données réelles seront branchées sur les collections existantes, sans modification arbitraire de leur schéma."><div className="grid min-h-72 place-items-center"><Empty icon={Users} text="Aucune donnée disponible actuellement." /></div></Panel>
   </div>
 }
 
 function Subscriptions() {
   return <div className="space-y-6">
     <div><p className="text-sm text-slate-500">Plans de la plateforme</p><h2 className="mt-1 text-2xl font-semibold">Abonnements</h2></div>
-    <div className="grid gap-5 md:grid-cols-3">
-      {[
-        ['Classique','$1 / élève','Facturation par élève'],
-        ['Professionnel','$1.50 / élève','Facturation par élève'],
-        ['Établissement','$2 / élève','Facturation par élève'],
-      ].map(([name,price,desc])=><div key={name} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft"><p className="text-sm text-slate-500">{name}</p><p className="mt-3 text-3xl font-semibold">{price}</p><p className="mt-2 text-sm text-slate-500">{desc}</p><div className="mt-6 rounded-xl bg-slate-50 p-3 text-xs text-slate-400">Données d’abonnement à connecter</div></div>)}
-    </div>
+    <div className="grid gap-5 md:grid-cols-3">{[['Classique','$1 / élève','Facturation par élève'],['Professionnel','$1.50 / élève','Facturation par élève'],['Établissement','$2 / élève','Facturation par élève']].map(([name,price,desc])=><div key={name} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-soft"><p className="text-sm text-slate-500">{name}</p><p className="mt-3 text-3xl font-semibold">{price}</p><p className="mt-2 text-sm text-slate-500">{desc}</p><div className="mt-6 rounded-xl bg-slate-50 p-3 text-xs text-slate-400">Données d’abonnement à connecter</div></div>)}</div>
     <Panel title="Abonnements des établissements" subtitle="Statut, dates, effectif et montant."><Empty icon={WalletCards} text="Aucun abonnement enregistré dans une collection dédiée pour le moment." /></Panel>
   </div>
 }
@@ -246,14 +214,7 @@ function Subscriptions() {
 function SettingsPage() {
   return <div className="max-w-3xl space-y-6">
     <div><p className="text-sm text-slate-500">Configuration générale</p><h2 className="mt-1 text-2xl font-semibold">Paramètres</h2></div>
-    <Panel title="Plateforme" subtitle="Paramètres généraux de la console admin.">
-      <div className="space-y-4">
-        <Row label="Projet Firebase" value="edufinance-e0fd5" />
-        <Row label="Base path" value="/edufinance-admin/" />
-        <Row label="Compte super administrateur prévu" value="controlpolytra@gmail.com" />
-        <Row label="Sécurité" value="Firebase Auth + collection admins + règles Firestore" />
-      </div>
-    </Panel>
+    <Panel title="Plateforme" subtitle="Paramètres généraux de la console admin."><div className="space-y-4"><Row label="Projet Firebase" value="edufinance-e0fd5" /><Row label="Base path" value="/edufinance-admin/" /><Row label="Compte super administrateur prévu" value="controlpolytra@gmail.com" /><Row label="Sécurité" value="Firebase Auth + collection admins + règles Firestore" /></div></Panel>
   </div>
 }
 
