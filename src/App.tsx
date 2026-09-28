@@ -34,30 +34,64 @@ function App() {
   const [page, setPage] = useState<Page>('dashboard')
   const [open, setOpen] = useState(false)
 
-  useEffect(() => onAuthStateChanged(auth, async (next) => {
-    setUser(next)
-    if (!next) {
-      setAdmin(null)
-      window.location.replace(CLIENT_APP_URL)
-      return
-    }
+  useEffect(() => {
+    let mounted = true
 
-    try {
-      const access = await resolveAdminAccess(next)
-      if (!access) {
+    const unsubscribe = onAuthStateChanged(auth, async (next) => {
+      if (!mounted) return
+
+      setUser(next)
+
+      if (!next) {
         setAdmin(null)
-        window.location.replace(CLIENT_APP_URL)
+        setBooting(false)
         return
       }
-      setAdmin(access)
-    } catch {
-      setAdmin(null)
-      window.location.replace(CLIENT_APP_URL)
-      return
-    } finally {
-      setBooting(false)
+
+      try {
+        const access = await resolveAdminAccess(next)
+
+        if (!mounted) return
+
+        if (!access) {
+          console.warn('[EduFinance Admin] Accès refusé. Déconnexion puis retour vers Pro.')
+          setAdmin(null)
+          setBooting(false)
+
+          // Évite une boucle Pro → Admin → Pro → Admin.
+          await signOut(auth)
+          window.location.replace(CLIENT_APP_URL)
+          return
+        }
+
+        console.log('[EduFinance Admin] SUPER_ADMIN AUTHORIZED')
+        setAdmin(access)
+        setBooting(false)
+      } catch (error) {
+        console.error('[EduFinance Admin] Erreur de vérification:', error)
+
+        if (!mounted) return
+
+        setAdmin(null)
+        setBooting(false)
+
+        // En cas d'erreur d'autorisation, on termine la session
+        // avant de revenir sur le site Pro.
+        try {
+          await signOut(auth)
+        } catch (signOutError) {
+          console.error('[EduFinance Admin] Erreur de déconnexion:', signOutError)
+        }
+
+        window.location.replace(CLIENT_APP_URL)
+      }
+    })
+
+    return () => {
+      mounted = false
+      unsubscribe()
     }
-  }), [])
+  }, [])
 
   if (booting) return <div className="min-h-screen grid place-items-center text-slate-500">Vérification des accès…</div>
   if (!user || !admin) return <div className="min-h-screen grid place-items-center text-slate-500">Redirection vers EduFinance Pro…</div>
