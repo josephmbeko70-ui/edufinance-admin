@@ -43,6 +43,7 @@ function App() {
   const [booting, setBooting] = useState(true)
   const [page, setPage] = useState<Page>('dashboard')
   const [open, setOpen] = useState(false)
+  const [authState, setAuthState] = useState('Initialisation Firebase…')
 
   useEffect(() => {
     let mounted = true
@@ -52,11 +53,21 @@ function App() {
       setUser(next)
 
       if (!next) {
-        setAdmin(null)
-        setBooting(false)
-        window.location.replace(CLIENT_APP_URL)
+        setAuthState('Aucune session Firebase détectée.')
+        // Firebase peut restaurer la session locale juste après le premier
+        // passage du listener. On laisse le listener terminer sans détruire
+        // une session qui pourrait encore être restaurée.
+        setTimeout(() => {
+          if (!mounted) return
+          if (!auth.currentUser) {
+            setAdmin(null)
+            setBooting(false)
+          }
+        }, 1500)
         return
       }
+
+      setAuthState(`Session détectée : ${next.email || next.uid}`)
 
       try {
         const access = await resolveAdminAccess(next)
@@ -88,8 +99,8 @@ function App() {
     }
   }, [])
 
-  if (booting) return <Loading text="Vérification des accès administrateur…" />
-  if (!user || !admin) return <Loading text="Redirection vers EduFinance Pro…" />
+  if (booting) return <Loading text={authState || "Vérification des accès administrateur…"} />
+  if (!user || !admin) return <Loading text={authState || "Session administrateur absente. Retour vers EduFinance Pro…"} />
 
   const isSuperAdmin = admin.role === 'super_admin'
   const visibleNav = isSuperAdmin ? nav : nav.filter(item => ['dashboard', 'schools', 'users', 'payments', 'activity', 'settings'].includes(item.id))
