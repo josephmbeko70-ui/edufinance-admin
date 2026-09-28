@@ -48,14 +48,21 @@ function App() {
   useEffect(() => {
     let mounted = true
 
-    // IMPORTANT :
-    // Firebase peut avoir besoin de terminer la restauration de la
-    // persistance locale avant que l'application Admin ne puisse connaître
-    // l'utilisateur. On attend explicitement que l'état initial soit prêt.
+    const waitForInitialAuthUser = (): Promise<User | null> =>
+      new Promise(resolve => {
+        let unsubscribe: (() => void) | null = null
+
+        unsubscribe = onAuthStateChanged(auth, nextUser => {
+          if (unsubscribe) unsubscribe()
+          resolve(nextUser)
+        })
+      })
+
     const boot = async () => {
       try {
         setAuthState('Restauration de la session Firebase…')
-        await auth.authStateReady()
+
+        const restoredUser = await waitForInitialAuthUser()
 
         if (!mounted) return
 
@@ -68,9 +75,9 @@ function App() {
           apiKey: auth.app.options.apiKey,
           currentUserUid: auth.currentUser?.uid ?? null,
           currentUserEmail: auth.currentUser?.email ?? null,
+          restoredUserUid: restoredUser?.uid ?? null,
+          restoredUserEmail: restoredUser?.email ?? null,
         })
-
-        const restoredUser = auth.currentUser
 
         if (!restoredUser) {
           setUser(null)
@@ -82,15 +89,22 @@ function App() {
         }
 
         setUser(restoredUser)
-        setAuthState(`Session détectée : ${restoredUser.email || restoredUser.uid}`)
+        setAuthState(
+          `Session détectée : ${restoredUser.email || restoredUser.uid}`
+        )
 
         const access = await resolveAdminAccess(restoredUser)
+
         if (!mounted) return
 
         if (!access) {
           setAdmin(null)
           setBooting(false)
-          try { await signOut(auth) } catch {}
+
+          try {
+            await signOut(auth)
+          } catch {}
+
           window.location.replace(CLIENT_APP_URL)
           return
         }
@@ -98,8 +112,13 @@ function App() {
         setAdmin(access)
         setBooting(false)
       } catch (error) {
-        console.error('[EduFinance Admin] Erreur de restauration/vérification:', error)
+        console.error(
+          '[EduFinance Admin] Erreur de restauration/vérification:',
+          error
+        )
+
         if (!mounted) return
+
         setUser(null)
         setAdmin(null)
         setAuthState('Impossible de restaurer la session Firebase.')
@@ -110,20 +129,8 @@ function App() {
 
     boot()
 
-    const unsubscribe = onAuthStateChanged(auth, next => {
-      if (!mounted) return
-
-      // Une fois le boot initial terminé, ce listener sert uniquement à
-      // maintenir l'état local. Il ne provoque pas de redirection pendant
-      // la restauration initiale.
-      if (!booting) {
-        setUser(next)
-      }
-    })
-
     return () => {
       mounted = false
-      unsubscribe()
     }
   }, [])
 
