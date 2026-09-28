@@ -59,6 +59,17 @@ function App() {
 
         if (!mounted) return
 
+        console.log('[EduFinance Admin][AUTH DEBUG]', {
+          origin: window.location.origin,
+          path: window.location.pathname,
+          firebaseAppName: auth.app.name,
+          projectId: auth.app.options.projectId,
+          appId: auth.app.options.appId,
+          apiKey: auth.app.options.apiKey,
+          currentUserUid: auth.currentUser?.uid ?? null,
+          currentUserEmail: auth.currentUser?.email ?? null,
+        })
+
         const restoredUser = auth.currentUser
 
         if (!restoredUser) {
