@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -15,5 +15,11 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
+
+// Même persistance locale que l’espace Pro : les deux applications
+// partagent le même hôte GitHub Pages et donc la même session Firebase.
+void setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error('[EduFinance Admin][AUTH] Impossible d’activer la persistance locale:', error)
+})
 export const db = getFirestore(app)
 export default app
