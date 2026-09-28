@@ -62,6 +62,7 @@ function App() {
           if (!auth.currentUser) {
             setAdmin(null)
             setBooting(false)
+            window.location.replace(CLIENT_APP_URL)
           }
         }, 1500)
         return
