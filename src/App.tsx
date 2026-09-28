@@ -7,7 +7,7 @@ import {
 import {
   collection, getDocs, query, where
 } from 'firebase/firestore'
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 import { auth, db } from './lib/firebase'
 import { resolveAdminAccess, type AdminRecord } from './lib/admin'
 
@@ -30,38 +30,37 @@ function App() {
   const [user, setUser] = useState<User | null>(null)
   const [admin, setAdmin] = useState<AdminRecord | null>(null)
   const [booting, setBooting] = useState(true)
-  const [login, setLogin] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
+  const CLIENT_APP_URL = 'https://josephmbeko70-ui.github.io/edufinance/'
   const [page, setPage] = useState<Page>('dashboard')
   const [open, setOpen] = useState(false)
 
   useEffect(() => onAuthStateChanged(auth, async (next) => {
     setUser(next)
-    if (!next) { setAdmin(null); setBooting(false); return }
-    try { setAdmin(await resolveAdminAccess(next)) }
-    catch { setAdmin(null) }
-    finally { setBooting(false) }
-  }), [])
+    if (!next) {
+      setAdmin(null)
+      window.location.replace(CLIENT_APP_URL)
+      return
+    }
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
     try {
-      const credential = await signInWithEmailAndPassword(auth, login.email.trim(), login.password)
-      const access = await resolveAdminAccess(credential.user)
+      const access = await resolveAdminAccess(next)
       if (!access) {
-        await signOut(auth)
-        setError('Ce compte est authentifié mais ne possède pas les droits administrateur.')
+        setAdmin(null)
+        window.location.replace(CLIENT_APP_URL)
         return
       }
       setAdmin(access)
     } catch {
-      setError('Connexion impossible. Vérifiez les identifiants et la configuration Firebase.')
+      setAdmin(null)
+      window.location.replace(CLIENT_APP_URL)
+      return
+    } finally {
+      setBooting(false)
     }
-  }
+  }), [])
 
-  if (booting) return <div className="min-h-screen grid place-items-center text-slate-500">Chargement sécurisé…</div>
-  if (!user || !admin) return <Login login={login} setLogin={setLogin} error={error} onSubmit={handleLogin} />
+  if (booting) return <div className="min-h-screen grid place-items-center text-slate-500">Vérification des accès…</div>
+  if (!user || !admin) return <div className="min-h-screen grid place-items-center text-slate-500">Redirection vers EduFinance Pro…</div>
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -122,40 +121,6 @@ function App() {
   )
 }
 
-function Login({ login, setLogin, error, onSubmit }: {
-  login: { email: string; password: string }
-  setLogin: (x: { email: string; password: string }) => void
-  error: string
-  onSubmit: (e: React.FormEvent) => void
-}) {
-  return <div className="min-h-screen bg-slate-950 px-4 py-10">
-    <div className="mx-auto grid max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid-cols-2">
-      <div className="hidden bg-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div>
-          <p className="text-xl font-semibold">EduFinance Admin</p>
-          <div className="mt-16 max-w-md">
-            <p className="text-sm uppercase tracking-[0.22em] text-slate-400">Console centrale</p>
-            <h1 className="mt-4 text-4xl font-semibold leading-tight">Pilotez la plateforme depuis un espace sécurisé.</h1>
-            <p className="mt-5 text-slate-400">L’authentification Firebase est indépendante de l’autorisation administrateur.</p>
-          </div>
-        </div>
-        <p className="text-xs text-slate-500">EduFinance Pro · Administration</p>
-      </div>
-      <div className="p-8 md:p-12">
-        <div className="mb-10">
-          <p className="text-sm font-medium text-slate-500">Accès administrateur</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight">Connexion</h2>
-        </div>
-        <form onSubmit={onSubmit} className="space-y-5">
-          <label className="block"><span className="mb-2 block text-sm font-medium">Email</span><input type="email" required value={login.email} onChange={e => setLogin({...login,email:e.target.value})} className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"/></label>
-          <label className="block"><span className="mb-2 block text-sm font-medium">Mot de passe</span><input type="password" required value={login.password} onChange={e => setLogin({...login,password:e.target.value})} className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-slate-950"/></label>
-          {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-          <button className="w-full rounded-xl bg-slate-950 px-4 py-3.5 font-medium text-white hover:bg-slate-800">Se connecter</button>
-        </form>
-      </div>
-    </div>
-  </div>
-}
 
 function Dashboard() {
   const [schools, setSchools] = useState(0)
