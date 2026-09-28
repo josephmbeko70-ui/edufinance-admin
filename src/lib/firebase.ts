@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { initializeAuth, browserLocalPersistence } from 'firebase/auth'
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -17,7 +17,7 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
 // Même persistance locale que l’espace Pro. Les deux applications
 // partagent le même hôte GitHub Pages.
 export const auth = initializeAuth(app, {
-  persistence: browserLocalPersistence,
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
 })
 export const db = getFirestore(app)
 export default app
