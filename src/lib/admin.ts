@@ -1,4 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDocFromServer } from 'firebase/firestore'
 import type { User } from 'firebase/auth'
 import { db } from './firebase'
 
@@ -13,32 +13,65 @@ export interface AdminRecord {
 }
 
 export async function resolveAdminAccess(user: User): Promise<AdminRecord | null> {
+  const path = `admins/${user.uid}`
   const ref = doc(db, 'admins', user.uid)
-  const snap = await getDoc(ref)
 
-  console.log('[EduFinance Admin] Vérification:', `admins/${user.uid}`)
-  console.log('[EduFinance Admin] Document existe:', snap.exists())
+  console.log('[EduFinance Admin][RBAC] Vérification Firestore:', {
+    path,
+    uid: user.uid,
+    email: user.email,
+  })
 
-  if (!snap.exists()) return null
+  try {
+    // Lecture serveur volontairement utilisée ici pour éviter qu'un cache
+    // local masque un problème de règles ou de données.
+    const snap = await getDocFromServer(ref)
 
-  const data = snap.data()
+    console.log('[EduFinance Admin][RBAC] Document existe:', snap.exists())
 
-  console.log('[EduFinance Admin] role:', data.role)
-  console.log('[EduFinance Admin] active:', data.active)
-  console.log('[EduFinance Admin] active type:', typeof data.active)
+    if (!snap.exists()) {
+      console.error('[EduFinance Admin][RBAC] DOCUMENT ADMIN ABSENT:', path)
+      return null
+    }
 
-  // Sécurité stricte : active doit être le Boolean true.
-  if (data.active !== true) return null
+    const data = snap.data()
 
-  if (data.role !== 'super_admin' && data.role !== 'school_admin') {
-    return null
-  }
+    console.log('[EduFinance Admin][RBAC] Données brutes:', {
+      role: data.role ?? null,
+      active: data.active ?? null,
+      activeType: typeof data.active,
+      activeIsTrue: data.active === true,
+      roleIsSuperAdmin: data.role === 'super_admin',
+      keys: Object.keys(data),
+    })
 
-  return {
-    role: data.role,
-    active: true,
-    schoolId: data.schoolId,
-    displayName: data.displayName,
-    email: data.email,
+    if (data.active !== true) {
+      console.error('[EduFinance Admin][RBAC] REFUS: active !== true')
+      return null
+    }
+
+    if (data.role !== 'super_admin' && data.role !== 'school_admin') {
+      console.error('[EduFinance Admin][RBAC] REFUS: rôle invalide:', data.role)
+      return null
+    }
+
+    return {
+      role: data.role,
+      active: true,
+      schoolId: data.schoolId,
+      displayName: data.displayName,
+      email: data.email,
+    }
+  } catch (error) {
+    console.error('[EduFinance Admin][RBAC] ERREUR FIRESTORE:', {
+      path,
+      error,
+      message: error instanceof Error ? error.message : String(error),
+      code: typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : null,
+    })
+
+    throw error
   }
 }
