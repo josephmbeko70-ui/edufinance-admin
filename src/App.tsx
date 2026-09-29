@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  Activity, Building2, CreditCard, LayoutDashboard, LogOut, Menu, Settings,
-  ShieldCheck, UserRound, Users, X, Search, Bell, ChevronRight, WalletCards,
-  GraduationCap, RefreshCw, Power, UserCog, Database, ArrowUpRight
+  Activity, ArrowDownToLine, ArrowUpRight, Bell, Building2, ChevronDown, ChevronRight,
+  CircleDollarSign, CreditCard, Database, FileBarChart, Gauge, GraduationCap,
+  LayoutDashboard, LogOut, Menu, MoreHorizontal, Percent, Power, RefreshCw,
+  Search, Settings, ShieldCheck, Sparkles, TrendingDown, TrendingUp, UserCog,
+  UserRound, Users, WalletCards, X
 } from 'lucide-react'
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth'
 import { auth } from './lib/firebase'
@@ -26,15 +28,30 @@ type IconType = typeof Building2
 
 const CLIENT_APP_URL = 'https://josephmbeko70-ui.github.io/edufinance/'
 
-const nav: { id: Page; label: string; icon: IconType }[] = [
-  { id: 'dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard },
-  { id: 'schools', label: 'Établissements', icon: Building2 },
-  { id: 'admins', label: 'Administrateurs', icon: ShieldCheck },
-  { id: 'subscriptions', label: 'Abonnements', icon: WalletCards },
-  { id: 'payments', label: 'Paiements', icon: CreditCard },
-  { id: 'users', label: 'Utilisateurs', icon: Users },
-  { id: 'activity', label: 'Activité / Journal', icon: Activity },
-  { id: 'settings', label: 'Paramètres', icon: Settings },
+const navGroups: { label: string; items: { id: Page; label: string; icon: IconType }[] }[] = [
+  {
+    label: 'Pilotage',
+    items: [
+      { id: 'dashboard', label: 'Vue d’ensemble', icon: LayoutDashboard },
+      { id: 'schools', label: 'Établissements', icon: Building2 },
+    ],
+  },
+  {
+    label: 'Finance & opérations',
+    items: [
+      { id: 'payments', label: 'Finances', icon: CircleDollarSign },
+      { id: 'users', label: 'Utilisateurs', icon: Users },
+      { id: 'activity', label: 'Activité', icon: Activity },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { id: 'admins', label: 'Administrateurs', icon: ShieldCheck },
+      { id: 'subscriptions', label: 'Abonnements', icon: WalletCards },
+      { id: 'settings', label: 'Paramètres', icon: Settings },
+    ],
+  },
 ]
 
 function App() {
@@ -186,36 +203,51 @@ function App() {
   )
 
   const isSuperAdmin = admin.role === 'super_admin'
-  const visibleNav = isSuperAdmin ? nav : nav.filter(item => ['dashboard', 'schools', 'users', 'payments', 'activity', 'settings'].includes(item.id))
+  const visibleGroups = navGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => isSuperAdmin || !['admins', 'subscriptions'].includes(item.id)),
+  })).filter(group => group.items.length > 0)
+  const currentPage = visibleGroups.flatMap(group => group.items).find(item => item.id === page)
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <aside className={`fixed inset-y-0 left-0 z-40 w-72 transform border-r border-slate-200 bg-slate-950 text-white transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
-          <div>
-            <p className="text-lg font-semibold tracking-tight">EduFinance</p>
-            <p className="text-xs text-slate-400">Console centrale</p>
+    <div className="min-h-screen bg-[#f6f8fb] text-slate-900">
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[272px] transform flex-col border-r border-slate-800 bg-[#0b1220] text-white transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex h-[76px] items-center justify-between border-b border-white/[0.07] px-5">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-950 shadow-lg shadow-black/10"><Sparkles size={18}/></div>
+            <div>
+              <p className="text-[15px] font-semibold tracking-tight">EduFinance</p>
+              <p className="text-[11px] text-slate-400">Admin workspace</p>
+            </div>
           </div>
-          <button className="lg:hidden" onClick={() => setOpen(false)}><X size={20}/></button>
+          <button className="lg:hidden text-slate-400" onClick={() => setOpen(false)}><X size={20}/></button>
         </div>
 
-        <nav className="space-y-1 p-4">
-          {visibleNav.map(item => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.id}
-                onClick={() => { setPage(item.id); setOpen(false) }}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition ${page === item.id ? 'bg-white text-slate-950' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}
-              >
-                <Icon size={18}/>
-                <span>{item.label}</span>
-              </button>
-            )
-          })}
+        <nav className="flex-1 space-y-6 overflow-y-auto p-4">
+          {visibleGroups.map(group => (
+            <div key={group.label}>
+              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{group.label}</p>
+              <div className="space-y-1">
+                {group.items.map(item => {
+                  const Icon = item.icon
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setPage(item.id); setOpen(false) }}
+                      className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition ${page === item.id ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:bg-white/[0.06] hover:text-white'}`}
+                    >
+                      <Icon size={17} strokeWidth={1.9}/>
+                      <span>{item.label}</span>
+                      {page === item.id && <ChevronRight size={14} className="ml-auto opacity-60"/>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="m-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4">
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><UserRound size={17}/></div>
             <div className="min-w-0">
@@ -229,27 +261,38 @@ function App() {
         </div>
       </aside>
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-          <div className="flex h-20 items-center justify-between px-4 md:px-8">
+      <div className="lg:pl-[272px]">
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+          <div className="flex h-[76px] items-center justify-between px-4 md:px-8">
             <div className="flex items-center gap-3">
-              <button className="lg:hidden" onClick={() => setOpen(true)}><Menu size={22}/></button>
+              <button className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white lg:hidden" onClick={() => setOpen(true)}><Menu size={19}/></button>
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">EduFinance Admin</p>
-                <h1 className="text-xl font-semibold">{visibleNav.find(x => x.id === page)?.label || 'Console'}</h1>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
+                <h1 className="mt-0.5 text-lg font-semibold tracking-tight">{currentPage?.label || 'Console'}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="hidden rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 md:inline-flex">Accès sécurisé</span>
-              <div className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white">
-                <Bell size={18}/>
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500"/>
+            <div className="flex items-center gap-3">
+              <div className="hidden items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 md:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/> Système opérationnel
+              </div>
+              <button className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50" aria-label="Notifications">
+                <Bell size={17}/>
+                <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-rose-500"/>
+              </button>
+              <div className="hidden h-9 w-px bg-slate-200 md:block"/>
+              <div className="hidden items-center gap-2.5 md:flex">
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-xs font-semibold text-white">{(admin.displayName || user.email || 'A').slice(0,1).toUpperCase()}</div>
+                <div className="max-w-[150px]">
+                  <p className="truncate text-xs font-semibold">{admin.displayName || 'Administrateur'}</p>
+                  <p className="truncate text-[11px] text-slate-400">{admin.role.replace('_', ' ')}</p>
+                </div>
+                <ChevronDown size={14} className="text-slate-400"/>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="p-4 md:p-8">
+        <main className="mx-auto max-w-[1600px] p-4 md:p-8">
           {page === 'dashboard' && <Dashboard onNavigate={setPage}/>}
           {page === 'schools' && <SchoolsPage />}
           {page === 'admins' && isSuperAdmin && <AdminsPage currentUid={user.uid}/>}
@@ -284,57 +327,83 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
 
   useEffect(() => { load() }, [load])
 
+  const schoolRate = counts.schools ? Math.round((counts.activeSchools / counts.schools) * 100) : 0
+  const adminRate = counts.admins ? Math.round((counts.activeAdmins / counts.admins) * 100) : 0
+  const activeSchools = schools.filter(s => s.status === 'active')
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-sm text-slate-500">Pilotage global de la plateforme</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Vue d’ensemble</h2>
+    <div className="space-y-7">
+      <section className="relative overflow-hidden rounded-[28px] bg-slate-950 px-6 py-7 text-white shadow-xl shadow-slate-900/10 md:px-8">
+        <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl"/>
+        <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl"/>
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs text-slate-300">
+              <Gauge size={13}/> Pilotage de la plateforme
+            </div>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Bonjour, votre centre de contrôle est prêt.</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">Une vue claire des établissements, des accès et des opérations importantes. Les chiffres affichés ici proviennent des données disponibles dans la plateforme.</p>
+          </div>
+          <button onClick={load} disabled={loading} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-slate-100 disabled:opacity-60">
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''}/> Actualiser les données
+          </button>
         </div>
-        <button onClick={load} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium hover:bg-slate-50">
-          <RefreshCw size={16}/> Actualiser
-        </button>
-      </div>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Établissements" value={counts.schools} hint={`${counts.activeSchools} actifs`} icon={Building2}/>
-        <StatCard label="Administrateurs" value={counts.admins} hint={`${counts.activeAdmins} actifs`} icon={ShieldCheck}/>
-        <StatCard label="Base scolaire" value="À la demande" hint="Statistiques détaillées par établissement" icon={GraduationCap}/>
-        <StatCard label="Sécurité" value="Active" hint="Firebase Auth + RBAC Firestore" icon={Database}/>
+        <StatCard label="Établissements" value={counts.schools} hint={`${counts.activeSchools} actifs • ${schoolRate}% du parc`} icon={Building2}/>
+        <StatCard label="Administrateurs" value={counts.admins} hint={`${counts.activeAdmins} actifs • ${adminRate}% actifs`} icon={ShieldCheck}/>
+        <StatCard label="Établissements actifs" value={counts.activeSchools} hint="Espaces actuellement opérationnels" icon={TrendingUp}/>
+        <StatCard label="Données élèves" value="À consulter" hint="Ouvrez un établissement pour ses indicateurs" icon={GraduationCap}/>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <Panel title="Établissements récents" subtitle="Données provenant directement de Firestore.">
+      <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
+        <Panel title="Portefeuille des établissements" subtitle="Un aperçu opérationnel du parc scolaire.">
           {loading ? <InlineLoading/> : schools.length === 0 ? <Empty icon={Building2} text="Aucun établissement enregistré."/> : (
-            <div className="divide-y divide-slate-100">
-              {schools.slice(0, 6).map(school => (
-                <button key={school.id} onClick={() => onNavigate('schools')} className="flex w-full items-center justify-between gap-4 py-4 text-left hover:bg-slate-50">
-                  <div className="min-w-0">
+            <div className="space-y-2">
+              {schools.slice(0, 7).map(school => (
+                <button key={school.id} onClick={() => onNavigate('schools')} className="group flex w-full items-center gap-4 rounded-2xl border border-transparent px-3 py-3 text-left transition hover:border-slate-200 hover:bg-slate-50">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600"><Building2 size={17}/></div>
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{school.name || school.id}</p>
                     <p className="mt-1 truncate text-xs text-slate-500">{[school.city, school.province].filter(Boolean).join(' · ') || 'Localisation non renseignée'}</p>
                   </div>
                   <StatusBadge value={school.status}/>
+                  <ArrowUpRight size={16} className="text-slate-300 transition group-hover:text-slate-600"/>
                 </button>
               ))}
             </div>
           )}
+          {!loading && schools.length > 7 && <button onClick={() => onNavigate('schools')} className="mt-3 w-full rounded-xl border border-dashed border-slate-200 py-3 text-xs font-semibold text-slate-500 hover:bg-slate-50">Voir tous les établissements</button>}
         </Panel>
 
-        <Panel title="Accès administrateur" subtitle="État du contrôle RBAC.">
-          <div className="space-y-3">
-            <InfoRow label="Authentification" value="Firebase Authentication"/>
-            <InfoRow label="Autorisation" value="admins/{uid}"/>
-            <InfoRow label="Rôle global" value="super_admin"/>
-            <InfoRow label="Connexion admin" value="Depuis EduFinance Pro"/>
+        <Panel title="Indicateurs de gestion" subtitle="Signaux calculés à partir des données actuelles.">
+          <div className="space-y-1">
+            <InsightRow icon={Building2} label="Parc actif" value={`${schoolRate}%`} detail={`${counts.activeSchools} / ${counts.schools} établissements`}/>
+            <InsightRow icon={ShieldCheck} label="Accès actifs" value={`${adminRate}%`} detail={`${counts.activeAdmins} / ${counts.admins} administrateurs`}/>
+            <InsightRow icon={GraduationCap} label="Couverture élèves" value="Disponible" detail="Voir le détail par établissement"/>
+            <InsightRow icon={FileBarChart} label="Reporting" value="Prêt" detail="Paiements, activité et indicateurs"/>
           </div>
         </Panel>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <QuickAction icon={Building2} title="Établissements" text="Consulter les écoles et leurs statistiques." onClick={() => onNavigate('schools')}/>
-        <QuickAction icon={UserCog} title="Administrateurs" text="Gérer les comptes administrateurs." onClick={() => onNavigate('admins')}/>
-        <QuickAction icon={Activity} title="Journal" text="Consulter l’activité d’un établissement." onClick={() => onNavigate('activity')}/>
+      <div className="grid gap-5 md:grid-cols-3">
+        <QuickAction icon={Building2} title="Piloter les établissements" text="Consulter le statut, l’année scolaire et les indicateurs de chaque établissement." onClick={() => onNavigate('schools')}/>
+        <QuickAction icon={CircleDollarSign} title="Suivre les finances" text="Consulter les dernières opérations de paiement et leur répartition par établissement." onClick={() => onNavigate('payments')}/>
+        <QuickAction icon={FileBarChart} title="Contrôler l’activité" text="Accéder au journal opérationnel et suivre les actions importantes." onClick={() => onNavigate('activity')}/>
       </div>
+
+      {activeSchools.length > 0 && (
+        <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-emerald-600"><TrendingUp size={16}/></div>
+            <div>
+              <p className="text-sm font-semibold text-emerald-900">Parc opérationnel</p>
+              <p className="mt-1 text-xs leading-5 text-emerald-800/80">{activeSchools.length} établissement(s) actuellement marqué(s) comme actif(s). Les indicateurs financiers détaillés restent consultables établissement par établissement.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -568,23 +637,30 @@ function SubscriptionsPage() {
 
 function SettingsPage({ admin, user }: { admin: AdminRecord; user: User }) {
   return (
-    <div className="max-w-3xl space-y-6">
-      <PageHeader title="Paramètres" subtitle="Informations techniques et sécurité de la console."/>
-      <Panel title="Sécurité" subtitle="État de la session et du modèle d’autorisation.">
+    <div className="space-y-6">
+      <PageHeader title="Paramètres" subtitle="Préférences de la console et informations de sécurité."/>
+      <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
+        <Panel title="Compte administrateur" subtitle="Identité et niveau d’accès actuellement utilisés.">
         <div className="space-y-4">
           <InfoRow label="Compte connecté" value={user.email || user.uid}/>
-          <InfoRow label="UID" value={user.uid}/>
-          <InfoRow label="Rôle" value={admin.role}/>
-          <InfoRow label="Projet Firebase" value="edufinance-e0fd5"/>
-          <InfoRow label="Authentification" value="EduFinance Pro → session Firebase partagée"/>
-          <InfoRow label="Autorisation" value="admins/{uid} + active === true"/>
+          <InfoRow label="Rôle" value={admin.role === 'super_admin' ? 'Super administrateur' : 'Administrateur établissement'}/>
+          <InfoRow label="État de session" value="Actif"/>
+          <InfoRow label="Accès console" value="Autorisé"/>
         </div>
       </Panel>
-      <Panel title="Principe de fonctionnement" subtitle="La console ne possède pas de formulaire de connexion indépendant.">
+        <Panel title="Sécurité de la session" subtitle="Contrôles appliqués à l’ouverture de la console.">
+          <div className="space-y-1">
+            <InsightRow icon={ShieldCheck} label="Authentification" value="Active" detail="Session partagée depuis EduFinance Pro"/>
+            <InsightRow icon={ShieldCheck} label="Autorisation" value="Validée" detail="Rôle et statut contrôlés"/>
+            <InsightRow icon={Database} label="Données" value="Directes" detail="Lecture depuis la source de données"/>
+          </div>
+        </Panel>
+      </div>
+      <Panel title="Principe d’accès" subtitle="La console ne possède pas de formulaire de connexion indépendant.">
         <div className="space-y-3 text-sm text-slate-600">
-          <p>1. L’utilisateur se connecte dans EduFinance Pro.</p>
-          <p>2. Pro vérifie le document <code className="rounded bg-slate-100 px-1.5 py-0.5">admins/{user.uid}</code>.</p>
-          <p>3. Un <code className="rounded bg-slate-100 px-1.5 py-0.5">super_admin</code> actif est envoyé automatiquement vers cette console.</p>
+          <p>1. La connexion est initiée depuis EduFinance Pro.</p>
+          <p>2. L’accès à cette console est vérifié avant l’affichage des données.</p>
+          <p>3. Les droits déterminent les espaces administratifs disponibles.</p>
           <p>4. Une session non autorisée est renvoyée vers EduFinance Pro.</p>
         </div>
       </Panel>
@@ -595,14 +671,26 @@ function SettingsPage({ admin, user }: { admin: AdminRecord; user: User }) {
 function PageHeader({ title, subtitle, onRefresh, loading }: { title: string; subtitle: string; onRefresh?: () => void; loading?: boolean }) {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-sm text-slate-500">{subtitle}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">{title}</h2></div>
-      {onRefresh && <button onClick={onRefresh} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"><RefreshCw size={16} className={loading ? 'animate-spin' : ''}/> Actualiser</button>}
+      <div>
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">EduFinance</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-[28px]">{title}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-500">{subtitle}</p>
+      </div>
+      {onRefresh && <button onClick={onRefresh} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"><RefreshCw size={16} className={loading ? 'animate-spin' : ''}/> Actualiser</button>}
     </div>
   )
 }
 
 function StatCard({ label, value, hint, icon: Icon }: { label: string; value: string | number; hint: string; icon: IconType }) {
-  return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft"><div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100"><Icon size={19}/></div><p className="mt-5 text-sm text-slate-500">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-2 text-xs text-slate-400">{hint}</p></div>
+  return <div className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_4px_24px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(15,23,42,0.07)]">
+    <div className="flex items-start justify-between gap-3">
+      <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-700"><Icon size={18}/></div>
+      <MoreHorizontal size={17} className="text-slate-300"/>
+    </div>
+    <p className="mt-5 text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
+    <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
+    <p className="mt-2 text-xs text-slate-500">{hint}</p>
+  </div>
 }
 
 function MiniStat({ icon: Icon, label, value }: { icon: IconType; label: string; value: number }) {
@@ -630,8 +718,22 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return <div className="flex flex-col gap-1 border-b border-slate-100 pb-4 last:border-0 sm:flex-row sm:items-center sm:justify-between"><span className="text-sm text-slate-500">{label}</span><span className="break-all text-sm font-medium">{value}</span></div>
 }
 
-function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-soft"><div className="mb-5 flex items-start justify-between gap-4"><div><h3 className="font-semibold">{title}</h3><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div><ChevronRight size={18} className="text-slate-300"/></div>{children}</section>
+function InsightRow({ icon: Icon, label, value, detail }: { icon: IconType; label: string; value: string; detail: string }) {
+  return <div className="flex items-center gap-3 rounded-xl px-2 py-3 hover:bg-slate-50">
+    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600"><Icon size={16}/></div>
+    <div className="min-w-0 flex-1"><p className="text-sm font-medium">{label}</p><p className="mt-0.5 truncate text-xs text-slate-400">{detail}</p></div>
+    <div className="text-right"><p className="text-sm font-semibold">{value}</p></div>
+  </div>
+}
+
+function Panel({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+  return <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_4px_24px_rgba(15,23,42,0.04)] md:p-6">
+    <div className="mb-5 flex items-start justify-between gap-4">
+      <div><h3 className="font-semibold tracking-tight">{title}</h3><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>
+      <ChevronRight size={17} className="mt-0.5 text-slate-300"/>
+    </div>
+    {children}
+  </section>
 }
 
 function Empty({ icon: Icon, text }: { icon: IconType; text: string }) {
