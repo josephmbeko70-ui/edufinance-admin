@@ -311,7 +311,14 @@ function App() {
 }
 
 function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
-  const [counts, setCounts] = useState({ schools: 0, admins: 0, activeSchools: 0, activeAdmins: 0 })
+  const [counts, setCounts] = useState({
+    schools: 0,
+    admins: 0,
+    activeSchools: 0,
+    activeAdmins: 0,
+    pendingSchools: 0,
+    rejectedSchools: 0,
+  })
   const [schools, setSchools] = useState<SchoolRecord[]>([])
   const [loading, setLoading] = useState(true)
 
