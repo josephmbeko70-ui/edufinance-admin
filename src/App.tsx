@@ -48,12 +48,16 @@ function App() {
   useEffect(() => {
     let mounted = true
     let verifying = false
+    let authReady = false
+    let unsubscribe: (() => void) | null = null
 
     const verifyUser = async (nextUser: User | null) => {
       if (!mounted || verifying) return
 
       if (!nextUser) {
-        console.warn('[EduFinance Admin][AUTH] Aucun utilisateur Firebase restauré.')
+        if (!authReady) return
+
+        console.warn('[EduFinance Admin][AUTH] Aucune session Firebase après restauration.')
         setUser(null)
         setAdmin(null)
         setAuthState('Aucune session Firebase détectée. Retour vers EduFinance Pro…')
@@ -124,12 +128,25 @@ function App() {
 
         if (!mounted) return
 
+        authReady = true
+
         console.log('[EduFinance Admin][AUTH] authStateReady terminé:', {
           currentUserUid: auth.currentUser?.uid ?? null,
           currentUserEmail: auth.currentUser?.email ?? null,
         })
 
         await verifyUser(auth.currentUser)
+
+        if (!mounted) return
+
+        unsubscribe = onAuthStateChanged(auth, nextUser => {
+          console.log('[EduFinance Admin][AUTH STATE CHANGED]', {
+            uid: nextUser?.uid ?? null,
+            email: nextUser?.email ?? null,
+          })
+
+          void verifyUser(nextUser)
+        })
       } catch (error) {
         console.error('[EduFinance Admin][AUTH] Erreur initialisation Firebase:', error)
 
@@ -143,20 +160,11 @@ function App() {
       }
     }
 
-    const unsubscribe = onAuthStateChanged(auth, nextUser => {
-      console.log('[EduFinance Admin][AUTH STATE CHANGED]', {
-        uid: nextUser?.uid ?? null,
-        email: nextUser?.email ?? null,
-      })
-
-      void verifyUser(nextUser)
-    })
-
     void boot()
 
     return () => {
       mounted = false
-      unsubscribe()
+      unsubscribe?.()
     }
   }, [])
 
