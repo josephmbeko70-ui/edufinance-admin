@@ -296,13 +296,13 @@ function App() {
         </header>
 
         <main className="mx-auto max-w-7xl p-4 md:p-6">
-          {page === 'dashboard' && <Dashboard onNavigate={setPage}/>}
-          {page === 'schools' && <SchoolsPage />}
+          {page === 'dashboard' && <Dashboard onNavigate={setPage} schoolId={isSuperAdmin ? undefined : admin.schoolId}/>}
+          {page === 'schools' && <SchoolsPage schoolId={isSuperAdmin ? undefined : admin.schoolId} canManageApprovals={isSuperAdmin}/>}
           {page === 'admins' && isSuperAdmin && <AdminsPage currentUid={user.uid}/>}
           {page === 'subscriptions' && isSuperAdmin && <SubscriptionsPage />}
-          {page === 'payments' && <SchoolScopedPage type="payments" />}
-          {page === 'users' && <SchoolScopedPage type="users" />}
-          {page === 'activity' && <SchoolScopedPage type="activity" />}
+          {page === 'payments' && <SchoolScopedPage type="payments" schoolId={isSuperAdmin ? undefined : admin.schoolId}/>}
+          {page === 'users' && <SchoolScopedPage type="users" schoolId={isSuperAdmin ? undefined : admin.schoolId}/>}
+          {page === 'activity' && <SchoolScopedPage type="activity" schoolId={isSuperAdmin ? undefined : admin.schoolId}/>}
           {page === 'settings' && <SettingsPage admin={admin} user={user}/>}
         </main>
       </div>
@@ -310,7 +310,7 @@ function App() {
   )
 }
 
-function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
+function Dashboard({ onNavigate, schoolId }: { onNavigate: (page: Page) => void; schoolId?: string }) {
   const [counts, setCounts] = useState({
     schools: 0,
     admins: 0,
@@ -325,7 +325,7 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [platformCounts, schoolList] = await Promise.all([getPlatformCounts(), listSchools()])
+      const [platformCounts, schoolList] = await Promise.all([getPlatformCounts(schoolId), listSchools(schoolId)])
       setCounts(platformCounts)
       setSchools(schoolList)
     } catch (error) {
@@ -333,7 +333,7 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [schoolId])
 
   useEffect(() => { load() }, [load])
 
@@ -419,7 +419,7 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
   )
 }
 
-function SchoolsPage() {
+function SchoolsPage({ schoolId, canManageApprovals = false }: { schoolId?: string; canManageApprovals?: boolean }) {
   const [schools, setSchools] = useState<SchoolRecord[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'active' | 'rejected'>('all')
@@ -454,7 +454,7 @@ function SchoolsPage() {
       ] as const).map(([id,label,value]) => <button key={id} onClick={() => setStatusFilter(id)} className={`rounded-2xl border p-4 text-left transition ${statusFilter === id ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}><p className="text-xs uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></button>)}</div>
       <div className="relative max-w-xl"><Search size={17} className="absolute left-3 top-3.5 text-slate-400"/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un établissement…" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 outline-none focus:border-slate-400"/></div>
       <Panel title={`${filtered.length} établissement(s)`} subtitle="Les établissements en attente ou rejetés ne disposent d’aucune gestion financière opérationnelle.">
-        {loading ? <InlineLoading/> : filtered.length === 0 ? <Empty icon={Building2} text="Aucun établissement dans ce filtre."/> : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead><tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400"><th className="px-3 py-3">Établissement</th><th className="px-3 py-3">Localisation</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3">Création</th><th className="px-3 py-3 text-right">Actions</th></tr></thead><tbody>{filtered.map(s => <tr key={s.id} className="border-b border-slate-50 last:border-0"><td className="px-3 py-4"><p className="font-medium">{s.name || s.id}</p><p className="mt-1 text-xs text-slate-400">{s.id}</p></td><td className="px-3 py-4 text-slate-600">{[s.city,s.province].filter(Boolean).join(' · ') || '—'}</td><td className="px-3 py-4"><StatusBadge value={s.status || 'active'}/></td><td className="px-3 py-4 text-slate-600">{formatDate(s.createdAt)}</td><td className="px-3 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => openSchool(s)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium hover:bg-white">Détails <ArrowUpRight size={13} className="ml-1 inline"/></button>{s.status === 'pending' && <><button disabled={busy === s.id} onClick={() => changeStatus(s,'active')} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Approuver</button><button disabled={busy === s.id} onClick={() => changeStatus(s,'rejected')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Rejeter</button></>}</div></td></tr>)}</tbody></table></div>}
+        {loading ? <InlineLoading/> : filtered.length === 0 ? <Empty icon={Building2} text="Aucun établissement dans ce filtre."/> : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead><tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400"><th className="px-3 py-3">Établissement</th><th className="px-3 py-3">Localisation</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3">Création</th><th className="px-3 py-3 text-right">Actions</th></tr></thead><tbody>{filtered.map(s => <tr key={s.id} className="border-b border-slate-50 last:border-0"><td className="px-3 py-4"><p className="font-medium">{s.name || s.id}</p><p className="mt-1 text-xs text-slate-400">{s.id}</p></td><td className="px-3 py-4 text-slate-600">{[s.city,s.province].filter(Boolean).join(' · ') || '—'}</td><td className="px-3 py-4"><StatusBadge value={s.status || 'active'}/></td><td className="px-3 py-4 text-slate-600">{formatDate(s.createdAt)}</td><td className="px-3 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => openSchool(s)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium hover:bg-white">Détails <ArrowUpRight size={13} className="ml-1 inline"/></button>{canManageApprovals && s.status === 'pending' && <><button disabled={busy === s.id} onClick={() => changeStatus(s,'active')} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Approuver</button><button disabled={busy === s.id} onClick={() => changeStatus(s,'rejected')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Rejeter</button></>}</div></td></tr>)}</tbody></table></div>}
       </Panel>
       {selected && <Panel title={selected.name || selected.id} subtitle={selected.status === 'active' ? "Statistiques de l’établissement actif." : "Cette demande n’est pas active : aucune donnée financière opérationnelle n’est chargée."}>{selected.status !== 'active' ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"><p className="font-semibold">{selected.status === 'pending' ? 'Validation requise' : 'Établissement rejeté'}</p><p className="mt-1">{selected.status === 'pending' ? 'Approuvez cette demande pour ouvrir la gestion financière.' : 'La gestion financière reste désactivée pour cet établissement.'}</p></div> : statsLoading ? <InlineLoading/> : stats ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><MiniStat icon={GraduationCap} label="Élèves" value={stats.students}/><MiniStat icon={CreditCard} label="Paiements" value={stats.payments}/><MiniStat icon={CircleDollarSign} label="Charges" value={stats.charges}/><MiniStat icon={WalletCards} label="Opérations caisse" value={stats.cashOperations}/><MiniStat icon={Users} label="Utilisateurs" value={stats.users}/><MiniStat icon={Activity} label="Logs d’audit" value={stats.auditLogs}/></div> : <Empty icon={Database} text="Statistiques indisponibles."/>}</Panel>}
     </div>
@@ -537,19 +537,19 @@ function AdminsPage({ currentUid }: { currentUid: string }) {
   )
 }
 
-function SchoolScopedPage({ type }: { type: 'payments' | 'users' | 'activity' }) {
+function SchoolScopedPage({ type, schoolId: scopedSchoolId }: { type: 'payments' | 'users' | 'activity'; schoolId?: string }) {
   const [schools, setSchools] = useState<SchoolRecord[]>([])
   const [schoolId, setSchoolId] = useState('')
   const [rows, setRows] = useState<Record<string, any>[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    listSchools().then(data => {
+    listSchools(scopedSchoolId).then(data => {
       const active = data.filter(s => s.status === 'active')
       setSchools(active)
       if (active[0]) setSchoolId(active[0].id)
     }).catch(console.error)
-  }, [])
+  }, [scopedSchoolId])
 
   useEffect(() => {
     if (!schoolId) return
