@@ -428,7 +428,7 @@ function SchoolsPage({ schoolId, canManageApprovals = false }: { schoolId?: stri
   const [loading, setLoading] = useState(true)
   const [statsLoading, setStatsLoading] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
-  const load = useCallback(async () => { setLoading(true); try { setSchools(await listSchools()) } catch (error) { console.error(error) } finally { setLoading(false) } }, [])
+  const load = useCallback(async () => { setLoading(true); try { setSchools(await listSchools(schoolId)) } catch (error) { console.error(error) } finally { setLoading(false) } }, [schoolId])
   useEffect(() => { load() }, [load])
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
