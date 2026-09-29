@@ -91,16 +91,8 @@ function App() {
             '[EduFinance Admin][AUTH] Utilisateur Firebase détecté, mais aucun accès admin valide.'
           )
           setAdmin(null)
-          setAuthState('Accès administrateur refusé. Retour vers EduFinance Pro…')
+          setAuthState('DIAGNOSTIC : session Firebase présente, mais accès admins/{uid} refusé. La redirection est volontairement suspendue.')
           setBooting(false)
-
-          try {
-            await signOut(auth)
-          } catch (signOutError) {
-            console.error('[EduFinance Admin][AUTH] Erreur signOut:', signOutError)
-          }
-
-          window.location.replace(CLIENT_APP_URL)
           return
         }
 
@@ -117,16 +109,8 @@ function App() {
         if (!mounted) return
 
         setAdmin(null)
-        setAuthState('Erreur lors de la vérification de admins/{uid}. Retour vers EduFinance Pro…')
+        setAuthState('DIAGNOSTIC : erreur pendant la lecture de admins/{uid}. La redirection est volontairement suspendue.')
         setBooting(false)
-
-        try {
-          await signOut(auth)
-        } catch (signOutError) {
-          console.error('[EduFinance Admin][AUTH] Erreur signOut après erreur:', signOutError)
-        }
-
-        window.location.replace(CLIENT_APP_URL)
       } finally {
         verifying = false
       }
@@ -177,7 +161,21 @@ function App() {
   }, [])
 
   if (booting) return <Loading text={authState || "Vérification des accès administrateur…"} />
-  if (!user || !admin) return <Loading text={authState || "Session administrateur absente. Retour vers EduFinance Pro…"} />
+  if (!user || !admin) return (
+    <div className="grid min-h-screen place-items-center bg-slate-950 px-6 text-slate-200">
+      <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-white/5 p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">EduFinance Admin — diagnostic</p>
+        <h1 className="mt-3 text-xl font-semibold">Session Firebase détectée, mais accès administrateur non validé</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-400">{authState}</p>
+        <div className="mt-5 rounded-xl bg-black/20 p-4 font-mono text-xs text-slate-300">
+          <div>UID : {user?.uid || '—'}</div>
+          <div>Email : {user?.email || '—'}</div>
+          <div>Firebase currentUser : {auth.currentUser?.uid || '—'}</div>
+        </div>
+        <p className="mt-4 text-xs text-slate-500">Ouvre la Console (F12). La page reste volontairement ouverte afin que le résultat exact de la lecture Firestore puisse être capturé.</p>
+      </div>
+    </div>
+  )
 
   const isSuperAdmin = admin.role === 'super_admin'
   const visibleNav = isSuperAdmin ? nav : nav.filter(item => ['dashboard', 'schools', 'users', 'payments', 'activity', 'settings'].includes(item.id))
