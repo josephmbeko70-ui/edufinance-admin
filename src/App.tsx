@@ -211,23 +211,23 @@ function App() {
   const currentPage = visibleGroups.flatMap(group => group.items).find(item => item.id === page)
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb] text-slate-900">
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[272px] transform flex-col border-r border-slate-800 bg-[#0b1220] text-white transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex h-[76px] items-center justify-between border-b border-white/[0.07] px-5">
+    <div className="min-h-screen bg-slate-100 font-sans text-slate-900 selection:bg-indigo-500 selection:text-white">
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 transform flex-col border-r border-slate-200 bg-white text-slate-900 transition-transform lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-950 shadow-lg shadow-black/10"><Sparkles size={18}/></div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-sm"><Building2 size={19}/></div>
             <div>
-              <p className="text-[15px] font-semibold tracking-tight">EduFinance</p>
-              <p className="text-[11px] text-slate-400">Admin workspace</p>
+              <p className="text-[15px] font-bold tracking-tight text-slate-900">EduFinance</p>
+              <p className="text-[11px] font-medium text-slate-500">Administration</p>
             </div>
           </div>
           <button className="lg:hidden text-slate-400" onClick={() => setOpen(false)}><X size={20}/></button>
         </div>
 
-        <nav className="flex-1 space-y-6 overflow-y-auto p-4">
+        <nav className="flex-1 space-y-5 overflow-y-auto p-4">
           {visibleGroups.map(group => (
             <div key={group.label}>
-              <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{group.label}</p>
+              <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{group.label}</p>
               <div className="space-y-1">
                 {group.items.map(item => {
                   const Icon = item.icon
@@ -235,10 +235,12 @@ function App() {
                     <button
                       key={item.id}
                       onClick={() => { setPage(item.id); setOpen(false) }}
-                      className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition ${page === item.id ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-400 hover:bg-white/[0.06] hover:text-white'}`}
+                      className={`group flex w-full items-center justify-between rounded-lg px-3.5 py-2.5 text-left text-xs font-medium transition-colors ${page === item.id ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-xs' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
                     >
-                      <Icon size={17} strokeWidth={1.9}/>
-                      <span>{item.label}</span>
+                      <span className={`flex items-center gap-3 ${page === item.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                        <Icon size={17} strokeWidth={1.9}/>
+                        <span>{item.label}</span>
+                      </span>
                       {page === item.id && <ChevronRight size={14} className="ml-auto opacity-60"/>}
                     </button>
                   )
@@ -248,32 +250,32 @@ function App() {
           ))}
         </nav>
 
-        <div className="m-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4">
+        <div className="m-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-white/10"><UserRound size={17}/></div>
+            <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-200 text-slate-700"><UserRound size={17}/></div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{admin.displayName || user.email || 'Administrateur'}</p>
-              <p className="text-xs capitalize text-slate-400">{admin.role.replace('_', ' ')}</p>
+              <p className="truncate text-sm font-semibold text-slate-800">{admin.displayName || user.email || 'Administrateur'}</p>
+              <p className="text-xs capitalize text-slate-500">{admin.role.replace('_', ' ')}</p>
             </div>
           </div>
-          <button onClick={() => signOut(auth)} className="mt-3 flex items-center gap-2 text-xs text-slate-300 hover:text-white">
+          <button onClick={() => signOut(auth)} className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-rose-600">
             <LogOut size={14}/> Déconnexion
           </button>
         </div>
       </aside>
 
-      <div className="lg:pl-[272px]">
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
-          <div className="flex h-[76px] items-center justify-between px-4 md:px-8">
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-30 h-16 border-b border-slate-200 bg-white">
+          <div className="flex h-full items-center justify-between px-4 sm:px-6">
             <div className="flex items-center gap-3">
               <button className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white lg:hidden" onClick={() => setOpen(true)}><Menu size={19}/></button>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
-                <h1 className="mt-0.5 text-lg font-semibold tracking-tight">{currentPage?.label || 'Console'}</h1>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">EduFinance Admin</p>
+                <h1 className="mt-0.5 text-base font-bold tracking-tight text-slate-900">{currentPage?.label || 'Console'}</h1>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 md:flex">
+              <div className="hidden items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 md:flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/> Système opérationnel
               </div>
               <button className="relative grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50" aria-label="Notifications">
@@ -293,7 +295,7 @@ function App() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1600px] p-4 md:p-8">
+        <main className="mx-auto max-w-7xl p-4 md:p-6">
           {page === 'dashboard' && <Dashboard onNavigate={setPage}/>}
           {page === 'schools' && <SchoolsPage />}
           {page === 'admins' && isSuperAdmin && <AdminsPage currentUid={user.uid}/>}
@@ -334,7 +336,7 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
 
   return (
     <div className="space-y-7">
-      <section className="relative overflow-hidden rounded-[28px] bg-slate-950 px-6 py-7 text-white shadow-xl shadow-slate-900/10 md:px-8">
+      <section className="relative overflow-hidden rounded-2xl bg-slate-900 px-6 py-6 text-white shadow-sm md:px-7">
         <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl"/>
         <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl"/>
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -342,7 +344,7 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs text-slate-300">
               <Gauge size={13}/> Pilotage de la plateforme
             </div>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">Bonjour, votre centre de contrôle est prêt.</h2>
+            <h2 className="mt-3 text-2xl font-bold tracking-tight md:text-[28px]">Bonjour, votre centre de contrôle est prêt.</h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">Une vue claire des établissements, des accès et des opérations importantes. Les chiffres affichés ici proviennent des données disponibles dans la plateforme.</p>
           </div>
           <button onClick={load} disabled={loading} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-slate-100 disabled:opacity-60">
@@ -351,7 +353,7 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         <StatCard label="Établissements" value={counts.schools} hint={`${counts.activeSchools} actifs • ${schoolRate}% du parc`} icon={Building2}/>
         <StatCard label="En attente" value={counts.pendingSchools} hint="Demandes à examiner" icon={Clock3}/>
         <StatCard label="Actifs" value={counts.activeSchools} hint="Espaces opérationnels" icon={TrendingUp}/>
