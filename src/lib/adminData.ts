@@ -34,19 +34,15 @@ export async function listAdmins(): Promise<AdminRecordData[]> {
 export async function getPlatformCounts(schoolId?: string) {
   if (schoolId) {
     const schoolSnap = await getDoc(doc(db, 'schools', schoolId))
-    const adminCount = await getCountFromServer(
-      query(collection(db, 'admins'), where('schoolId', '==', schoolId))
-    )
-
     const school = schoolSnap.exists() ? schoolSnap.data() : null
 
     return {
       schools: school ? 1 : 0,
-      admins: adminCount.data().count,
+      admins: school ? 1 : 0,
       activeSchools: school?.status === 'active' ? 1 : 0,
       pendingSchools: school?.status === 'pending' ? 1 : 0,
       rejectedSchools: school?.status === 'rejected' ? 1 : 0,
-      activeAdmins: adminCount.data().count,
+      activeAdmins: school?.status === 'active' ? 1 : 0,
     }
   }
 
