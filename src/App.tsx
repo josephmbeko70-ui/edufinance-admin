@@ -47,75 +47,107 @@ function App() {
 
   useEffect(() => {
     let mounted = true
+    let verifying = false
 
-    const waitForInitialAuthUser = (): Promise<User | null> =>
-      new Promise(resolve => {
-        let unsubscribe: (() => void) | null = null
+    const verifyUser = async (nextUser: User | null) => {
+      if (!mounted || verifying) return
 
-        unsubscribe = onAuthStateChanged(auth, nextUser => {
-          if (unsubscribe) unsubscribe()
-          resolve(nextUser)
-        })
+      if (!nextUser) {
+        console.warn('[EduFinance Admin][AUTH] Aucun utilisateur Firebase restauré.')
+        setUser(null)
+        setAdmin(null)
+        setAuthState('Aucune session Firebase détectée. Retour vers EduFinance Pro…')
+        setBooting(false)
+        window.location.replace(CLIENT_APP_URL)
+        return
+      }
+
+      verifying = true
+      setUser(nextUser)
+      setAuthState(`Session détectée : ${nextUser.email || nextUser.uid}`)
+
+      console.log('[EduFinance Admin][AUTH DEBUG]', {
+        origin: window.location.origin,
+        path: window.location.pathname,
+        firebaseAppName: auth.app.name,
+        projectId: auth.app.options.projectId,
+        appId: auth.app.options.appId,
+        apiKey: auth.app.options.apiKey,
+        currentUserUid: auth.currentUser?.uid ?? null,
+        currentUserEmail: auth.currentUser?.email ?? null,
+        restoredUserUid: nextUser.uid,
+        restoredUserEmail: nextUser.email ?? null,
+        emailVerified: nextUser.emailVerified,
+        isAnonymous: nextUser.isAnonymous,
       })
+
+      try {
+        const access = await resolveAdminAccess(nextUser)
+
+        if (!mounted) return
+
+        if (!access) {
+          console.error(
+            '[EduFinance Admin][AUTH] Utilisateur Firebase détecté, mais aucun accès admin valide.'
+          )
+          setAdmin(null)
+          setAuthState('Accès administrateur refusé. Retour vers EduFinance Pro…')
+          setBooting(false)
+
+          try {
+            await signOut(auth)
+          } catch (signOutError) {
+            console.error('[EduFinance Admin][AUTH] Erreur signOut:', signOutError)
+          }
+
+          window.location.replace(CLIENT_APP_URL)
+          return
+        }
+
+        console.log('[EduFinance Admin][AUTH] Accès administrateur validé:', access)
+        setAdmin(access)
+        setAuthState(`Accès administrateur validé : ${access.role}`)
+        setBooting(false)
+      } catch (error) {
+        console.error(
+          '[EduFinance Admin][AUTH] Erreur Firestore pendant la vérification admins:',
+          error
+        )
+
+        if (!mounted) return
+
+        setAdmin(null)
+        setAuthState('Erreur lors de la vérification de admins/{uid}. Retour vers EduFinance Pro…')
+        setBooting(false)
+
+        try {
+          await signOut(auth)
+        } catch (signOutError) {
+          console.error('[EduFinance Admin][AUTH] Erreur signOut après erreur:', signOutError)
+        }
+
+        window.location.replace(CLIENT_APP_URL)
+      } finally {
+        verifying = false
+      }
+    }
 
     const boot = async () => {
       try {
         setAuthState('Restauration de la session Firebase…')
 
-        const restoredUser = await waitForInitialAuthUser()
+        await auth.authStateReady()
 
         if (!mounted) return
 
-        console.log('[EduFinance Admin][AUTH DEBUG]', {
-          origin: window.location.origin,
-          path: window.location.pathname,
-          firebaseAppName: auth.app.name,
-          projectId: auth.app.options.projectId,
-          appId: auth.app.options.appId,
-          apiKey: auth.app.options.apiKey,
+        console.log('[EduFinance Admin][AUTH] authStateReady terminé:', {
           currentUserUid: auth.currentUser?.uid ?? null,
           currentUserEmail: auth.currentUser?.email ?? null,
-          restoredUserUid: restoredUser?.uid ?? null,
-          restoredUserEmail: restoredUser?.email ?? null,
         })
 
-        if (!restoredUser) {
-          setUser(null)
-          setAdmin(null)
-          setAuthState('Aucune session Firebase détectée.')
-          setBooting(false)
-          window.location.replace(CLIENT_APP_URL)
-          return
-        }
-
-        setUser(restoredUser)
-        setAuthState(
-          `Session détectée : ${restoredUser.email || restoredUser.uid}`
-        )
-
-        const access = await resolveAdminAccess(restoredUser)
-
-        if (!mounted) return
-
-        if (!access) {
-          setAdmin(null)
-          setBooting(false)
-
-          try {
-            await signOut(auth)
-          } catch {}
-
-          window.location.replace(CLIENT_APP_URL)
-          return
-        }
-
-        setAdmin(access)
-        setBooting(false)
+        await verifyUser(auth.currentUser)
       } catch (error) {
-        console.error(
-          '[EduFinance Admin] Erreur de restauration/vérification:',
-          error
-        )
+        console.error('[EduFinance Admin][AUTH] Erreur initialisation Firebase:', error)
 
         if (!mounted) return
 
@@ -127,10 +159,20 @@ function App() {
       }
     }
 
-    boot()
+    const unsubscribe = onAuthStateChanged(auth, nextUser => {
+      console.log('[EduFinance Admin][AUTH STATE CHANGED]', {
+        uid: nextUser?.uid ?? null,
+        email: nextUser?.email ?? null,
+      })
+
+      void verifyUser(nextUser)
+    })
+
+    void boot()
 
     return () => {
       mounted = false
+      unsubscribe()
     }
   }, [])
 
