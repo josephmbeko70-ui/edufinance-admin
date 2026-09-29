@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  Activity, ArrowDownToLine, ArrowUpRight, Bell, Building2, ChevronDown, ChevronRight,
+  Activity, Clock3, ArrowDownToLine, ArrowUpRight, Bell, Building2, ChevronDown, ChevronRight,
   CircleDollarSign, CreditCard, Database, FileBarChart, Gauge, GraduationCap,
   LayoutDashboard, LogOut, Menu, MoreHorizontal, Percent, Power, RefreshCw,
   Search, Settings, ShieldCheck, Sparkles, TrendingDown, TrendingUp, UserCog,
@@ -19,6 +19,7 @@ import {
   listSchools,
   setAdminActive,
   setAdminRole,
+  setSchoolStatus,
   type AdminRecordData,
   type SchoolRecord,
 } from './lib/adminData'
@@ -411,78 +412,44 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
 function SchoolsPage() {
   const [schools, setSchools] = useState<SchoolRecord[]>([])
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'active' | 'rejected'>('all')
   const [selected, setSelected] = useState<SchoolRecord | null>(null)
   const [stats, setStats] = useState<Record<string, number> | null>(null)
   const [loading, setLoading] = useState(true)
   const [statsLoading, setStatsLoading] = useState(false)
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    try { setSchools(await listSchools()) } catch (error) { console.error(error) } finally { setLoading(false) }
-  }, [])
-
+  const [busy, setBusy] = useState<string | null>(null)
+  const load = useCallback(async () => { setLoading(true); try { setSchools(await listSchools()) } catch (error) { console.error(error) } finally { setLoading(false) } }, [])
   useEffect(() => { load() }, [load])
-
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase()
-    if (!term) return schools
-    return schools.filter(s => JSON.stringify(s).toLowerCase().includes(term))
-  }, [schools, search])
-
+    return schools.filter(s => (statusFilter === 'all' || (s.status || 'active') === statusFilter) && (!term || JSON.stringify(s).toLowerCase().includes(term)))
+  }, [schools, search, statusFilter])
   const openSchool = async (school: SchoolRecord) => {
-    setSelected(school)
-    setStats(null)
-    setStatsLoading(true)
-    try { setStats(await getSchoolStats(school.id)) } catch (error) { console.error(error) } finally { setStatsLoading(false) }
+    setSelected(school); setStats(null)
+    if (school.status !== 'active') return
+    setStatsLoading(true); try { setStats(await getSchoolStats(school.id)) } catch (error) { console.error(error) } finally { setStatsLoading(false) }
   }
-
+  const changeStatus = async (school: SchoolRecord, status: 'active' | 'rejected') => {
+    setBusy(school.id)
+    try { await setSchoolStatus(school.id, status); await load(); setSelected(prev => prev ? { ...prev, status } : prev) }
+    catch (error) { console.error(error); alert('Impossible de modifier le statut de cet établissement.') }
+    finally { setBusy(null) }
+  }
+  const counts = { all: schools.length, pending: schools.filter(s => s.status === 'pending').length, active: schools.filter(s => s.status === 'active').length, rejected: schools.filter(s => s.status === 'rejected').length }
   return (
     <div className="space-y-6">
-      <PageHeader title="Établissements" subtitle="Gestion et supervision des espaces scolaires." onRefresh={load} loading={loading}/>
-      <div className="relative max-w-xl">
-        <Search size={17} className="absolute left-3 top-3.5 text-slate-400"/>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un établissement…" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 outline-none focus:border-slate-400"/>
-      </div>
-
-      <Panel title={`${filtered.length} établissement(s)`} subtitle="Les données sont lues à la demande depuis Firestore.">
-        {loading ? <InlineLoading/> : filtered.length === 0 ? <Empty icon={Building2} text="Aucun établissement trouvé."/> : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead><tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-3 py-3">Établissement</th><th className="px-3 py-3">Ville</th><th className="px-3 py-3">Année</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3"></th>
-              </tr></thead>
-              <tbody>
-                {filtered.map(s => <tr key={s.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-                  <td className="px-3 py-4"><p className="font-medium">{s.name || s.id}</p><p className="mt-1 text-xs text-slate-400">{s.id}</p></td>
-                  <td className="px-3 py-4 text-slate-600">{s.city || '—'}</td>
-                  <td className="px-3 py-4 text-slate-600">{s.schoolYear || '—'}</td>
-                  <td className="px-3 py-4"><StatusBadge value={s.status}/></td>
-                  <td className="px-3 py-4 text-right"><button onClick={() => openSchool(s)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium hover:bg-white">Détails <ArrowUpRight size={13} className="ml-1 inline"/></button></td>
-                </tr>)}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <PageHeader title="Établissements" subtitle="Demandes, validation et supervision des établissements EduFinance." onRefresh={load} loading={loading}/>
+      <div className="grid gap-3 sm:grid-cols-4">{([
+        ['all','Total',counts.all],['pending','En attente',counts.pending],['active','Actifs',counts.active],['rejected','Rejetés',counts.rejected],
+      ] as const).map(([id,label,value]) => <button key={id} onClick={() => setStatusFilter(id)} className={`rounded-2xl border p-4 text-left transition ${statusFilter === id ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}><p className="text-xs uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></button>)}</div>
+      <div className="relative max-w-xl"><Search size={17} className="absolute left-3 top-3.5 text-slate-400"/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un établissement…" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 outline-none focus:border-slate-400"/></div>
+      <Panel title={`${filtered.length} établissement(s)`} subtitle="Les établissements en attente ou rejetés ne disposent d’aucune gestion financière opérationnelle.">
+        {loading ? <InlineLoading/> : filtered.length === 0 ? <Empty icon={Building2} text="Aucun établissement dans ce filtre."/> : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead><tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400"><th className="px-3 py-3">Établissement</th><th className="px-3 py-3">Localisation</th><th className="px-3 py-3">Statut</th><th className="px-3 py-3">Création</th><th className="px-3 py-3 text-right">Actions</th></tr></thead><tbody>{filtered.map(s => <tr key={s.id} className="border-b border-slate-50 last:border-0"><td className="px-3 py-4"><p className="font-medium">{s.name || s.id}</p><p className="mt-1 text-xs text-slate-400">{s.id}</p></td><td className="px-3 py-4 text-slate-600">{[s.city,s.province].filter(Boolean).join(' · ') || '—'}</td><td className="px-3 py-4"><StatusBadge value={s.status || 'active'}/></td><td className="px-3 py-4 text-slate-600">{formatDate(s.createdAt)}</td><td className="px-3 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => openSchool(s)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium hover:bg-white">Détails <ArrowUpRight size={13} className="ml-1 inline"/></button>{s.status === 'pending' && <><button disabled={busy === s.id} onClick={() => changeStatus(s,'active')} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Approuver</button><button disabled={busy === s.id} onClick={() => changeStatus(s,'rejected')} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Rejeter</button></>}</div></td></tr>)}</tbody></table></div>}
       </Panel>
-
-      {selected && (
-        <Panel title={selected.name || selected.id} subtitle="Statistiques calculées à la demande pour cet établissement.">
-          {statsLoading ? <InlineLoading/> : stats ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <MiniStat icon={GraduationCap} label="Élèves" value={stats.students}/>
-              <MiniStat icon={CreditCard} label="Paiements" value={stats.payments}/>
-              <MiniStat icon={WalletCards} label="Charges" value={stats.charges}/>
-              <MiniStat icon={Database} label="Opérations caisse" value={stats.cashOperations}/>
-              <MiniStat icon={Users} label="Utilisateurs" value={stats.users}/>
-              <MiniStat icon={Activity} label="Logs d’audit" value={stats.auditLogs}/>
-            </div>
-          ) : <Empty icon={Database} text="Statistiques indisponibles."/>}
-        </Panel>
-      )}
+      {selected && <Panel title={selected.name || selected.id} subtitle={selected.status === 'active' ? "Statistiques de l’établissement actif." : "Cette demande n’est pas active : aucune donnée financière opérationnelle n’est chargée."}>{selected.status !== 'active' ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"><p className="font-semibold">{selected.status === 'pending' ? 'Validation requise' : 'Établissement rejeté'}</p><p className="mt-1">{selected.status === 'pending' ? 'Approuvez cette demande pour ouvrir la gestion financière.' : 'La gestion financière reste désactivée pour cet établissement.'}</p></div> : statsLoading ? <InlineLoading/> : stats ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><MiniStat icon={GraduationCap} label="Élèves" value={stats.students}/><MiniStat icon={CreditCard} label="Paiements" value={stats.payments}/><MiniStat icon={CircleDollarSign} label="Charges" value={stats.charges}/><MiniStat icon={WalletCards} label="Opérations caisse" value={stats.cashOperations}/><MiniStat icon={Users} label="Utilisateurs" value={stats.users}/><MiniStat icon={Activity} label="Logs d’audit" value={stats.auditLogs}/></div> : <Empty icon={Database} text="Statistiques indisponibles."/>}</Panel>}
     </div>
   )
 }
-
 function AdminsPage({ currentUid }: { currentUid: string }) {
   const [admins, setAdmins] = useState<AdminRecordData[]>([])
   const [search, setSearch] = useState('')
@@ -568,8 +535,9 @@ function SchoolScopedPage({ type }: { type: 'payments' | 'users' | 'activity' })
 
   useEffect(() => {
     listSchools().then(data => {
-      setSchools(data)
-      if (data[0]) setSchoolId(data[0].id)
+      const active = data.filter(s => s.status === 'active')
+      setSchools(active)
+      if (active[0]) setSchoolId(active[0].id)
     }).catch(console.error)
   }, [])
 
@@ -593,12 +561,12 @@ function SchoolScopedPage({ type }: { type: 'payments' | 'users' | 'activity' })
       <div className="max-w-xl">
         <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">Établissement</label>
         <select value={schoolId} onChange={e => setSchoolId(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none">
-          {schools.length === 0 && <option value="">Aucun établissement</option>}
+          {schools.length === 0 && <option value="">Aucun établissement actif</option>}
           {schools.map(s => <option key={s.id} value={s.id}>{s.name || s.id}</option>)}
         </select>
       </div>
       <Panel title={`${rows.length} élément(s)`} subtitle="Chargement limité aux 100 éléments les plus récents lorsque la collection est paginée.">
-        {loading ? <InlineLoading/> : rows.length === 0 ? <Empty icon={Icon} text="Aucune donnée disponible pour cet établissement."/> : (
+        {loading ? <InlineLoading/> : schools.length === 0 ? <Empty icon={Icon} text="Aucun établissement actif n’est disponible pour la gestion opérationnelle."/> : rows.length === 0 ? <Empty icon={Icon} text="Aucune donnée disponible pour cet établissement."/> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <thead><tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
@@ -710,8 +678,9 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 function StatusBadge({ value }: { value?: string }) {
-  const active = value === 'active'
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{active ? 'Actif' : value || 'Non renseigné'}</span>
+  const styles = value === 'active' ? 'bg-emerald-50 text-emerald-700' : value === 'pending' ? 'bg-amber-50 text-amber-700' : value === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600'
+  const label = value === 'active' ? 'Actif' : value === 'pending' ? 'En attente' : value === 'rejected' ? 'Rejeté' : value || 'Non renseigné'
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles}`}>{label}</span>
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
