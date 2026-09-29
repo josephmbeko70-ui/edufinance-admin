@@ -3,7 +3,7 @@ import { initializeAuth, browserLocalPersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyCm65UkbJowhIbOgOgwi0vGGJrLcFun5Rys',
+  apiKey: 'AIzaSyCm65UkbJowhIbOgQia0vGGJrLcFun5Rys',
   authDomain: 'edufinance-e0fd5.firebaseapp.com',
   projectId: 'edufinance-e0fd5',
   storageBucket: 'edufinance-e0fd5.firebasestorage.app',
