@@ -25,10 +25,12 @@ export async function listAdmins(): Promise<AdminRecordData[]> {
 }
 
 export async function getPlatformCounts() {
-  const [schools, admins, activeSchools, activeAdmins] = await Promise.all([
+  const [schools, admins, activeSchools, pendingSchools, rejectedSchools, activeAdmins] = await Promise.all([
     getCountFromServer(collection(db, 'schools')),
     getCountFromServer(collection(db, 'admins')),
     getCountFromServer(query(collection(db, 'schools'), where('status', '==', 'active'))),
+    getCountFromServer(query(collection(db, 'schools'), where('status', '==', 'pending'))),
+    getCountFromServer(query(collection(db, 'schools'), where('status', '==', 'rejected'))),
     getCountFromServer(query(collection(db, 'admins'), where('active', '==', true))),
   ])
 
@@ -36,6 +38,8 @@ export async function getPlatformCounts() {
     schools: schools.data().count,
     admins: admins.data().count,
     activeSchools: activeSchools.data().count,
+    pendingSchools: pendingSchools.data().count,
+    rejectedSchools: rejectedSchools.data().count,
     activeAdmins: activeAdmins.data().count,
   }
 }
@@ -73,6 +77,10 @@ export async function listSchoolPayments(schoolId: string): Promise<Record<strin
 export async function listSchoolActivity(schoolId: string): Promise<Record<string, any>[]> {
   const snap = await getDocs(query(collection(db, 'schools', schoolId, 'auditLogs'), orderBy('createdAt', 'desc'), limit(100)))
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+export async function setSchoolStatus(schoolId: string, status: 'active' | 'rejected' | 'pending') {
+  await updateDoc(doc(db, 'schools', schoolId), { status, updatedAt: new Date().toISOString() })
 }
 
 export async function setAdminActive(adminId: string, active: boolean) {
