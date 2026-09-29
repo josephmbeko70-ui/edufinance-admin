@@ -351,11 +351,12 @@ function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Établissements" value={counts.schools} hint={`${counts.activeSchools} actifs • ${schoolRate}% du parc`} icon={Building2}/>
+        <StatCard label="En attente" value={counts.pendingSchools} hint="Demandes à examiner" icon={Clock3}/>
+        <StatCard label="Actifs" value={counts.activeSchools} hint="Espaces opérationnels" icon={TrendingUp}/>
+        <StatCard label="Rejetés" value={counts.rejectedSchools} hint="Demandes non approuvées" icon={TrendingDown}/>
         <StatCard label="Administrateurs" value={counts.admins} hint={`${counts.activeAdmins} actifs • ${adminRate}% actifs`} icon={ShieldCheck}/>
-        <StatCard label="Établissements actifs" value={counts.activeSchools} hint="Espaces actuellement opérationnels" icon={TrendingUp}/>
-        <StatCard label="Données élèves" value="À consulter" hint="Ouvrez un établissement pour ses indicateurs" icon={GraduationCap}/>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
